@@ -3,18 +3,14 @@
 # Is necessary to install python-lxml and curl packages
 
 from lxml import etree
-import requests
+from influxdb import InfluxDBClient
 import time
-import os
 
-# InfluxDB server and port (IP:PORT or domain:port)
-influxdb_server = 'MyInfluxDB.com:8086'
+# InfluxDB server
+influxdb_server = 'MyInfluxDB.com'
 
-# Uncomment the line below if you use 'https://' to access to your server
-influxdb_server = 'https://' + influxdb_server + "/write"
-
-# Uncomment the line below if you use 'http://' to access to your server
-#influxdb_server = 'http://' + influxdb_server + "/write"
+# InfluxDB port
+influxdb_port = '8086'
 
 # InfluxDB Database name
 database = 'testdb'
@@ -23,8 +19,13 @@ database = 'testdb'
 username = 'influx-user'
 password = 'AtB73HeTqp'
 
-# OpenTracker statistics url
-opentracker_url = 'http://mytracker:6969/stats?mode=everything'
+client = InfluxDBClient(host = influxdb_server, port = influxdb_port, username = username, password = password, database = database)
+
+# Tracker running information
+opentracker_link_url = 'http://127.0.0.1:6969/stats?mode=everything'
+
+# Tracker's torrent information
+opentracker_torrent_info_url = 'http://127.0.0.1:6969/stats?mode=tpbs&format=txt'
 
 # Data query interval in seconds:
 wait = 30
@@ -60,15 +61,24 @@ while True:
     #print("Completed: " + completed)
 
     # Write to InfluxDB
-    params = (
-     ('db', database),
-     ('precision', 's'),
-     ('u', username),
-     ('p', password),
-    )
+    link_data = [
+        {
+            "measurement": "link_data",
+            "tags": {
+                "tracker_id":tracker_id
+            },
+            "fields": {
+                "uptime":uptime,
+                "torrents":torrents,
+                "peers":peers,
+                "seeds":seeds,
+                "completed":completed,
+                "leechers":leechers
+            }
+        }
+    ]
 
-    data = 'uptime value=' + uptime + '\ntorrents value=' + torrents + '\npeers value=' + peers + '\nseeds value=' + seeds + '\nleechers value=' + str(leech$
-    response = requests.post(influxdb_server, params=params, data=data)
+    client.write_points(link_data)
 
     # wait for 15 seconds
     time.sleep(wait)
